@@ -21,29 +21,29 @@ const Counter = sequelize.define("Counter", {
 });
 
 // 定义Token模型
-const Token = sequelize.define("Token", {
-  token: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: '',
-  },
-  appid: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    defaultValue: '',
-  },
-  lastUpdated: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: '',
-  },
-});
+// const Token = sequelize.define("Token", {
+//   token: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     defaultValue: '',
+//   },
+//   appid: {
+//     type: DataTypes.STRING,
+//     allowNull: false,
+//     unique: true,
+//     defaultValue: '',
+//   },
+//   lastUpdated: {
+//     type: DataTypes.DATE,
+//     allowNull: false,
+//     defaultValue: '',
+//   },
+// });
 
 // 数据库初始化方法
 async function init() {
   await Counter.sync({ alter: true });
-  await Token.sync({ alter: true });
+  // await Token.sync({ alter: true });
 }
 
 // 导出初始化方法和模型
