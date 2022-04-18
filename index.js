@@ -2,32 +2,11 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const https = require("https");
+// const https = require("https");
 const { init: initDB, Counter } = require("./db");
-const fs = require('fs')
-const request = require('request')
+// const fs = require('fs');
+const request = require('request');
 const logger = morgan("tiny");
-
-const getWechatToken = async () => {
-  https.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+this.appid+'&secret='+this.appsecret, (res) => {
-
-    console.info('statusCode:', res.statusCode);
-    console.info('headers:', res.headers);
-
-    res.on('data', (d) => {
-        process.stdout.write(d);
-
-        let data = JSON.parse(d);
-        if (res.statusCode == 200 && data && data.expires_in && (!data.errcode || data.errcode == 0)) {
-            console.log(data.access_token);
-            this.setToken(data.access_token);
-        }
-    });
-      
-  }).on('error', (e) => {
-      console.error(e)
-  })
-}
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -99,7 +78,7 @@ app.post("/api/token", async (req, res) => {
       resolve(JSON.parse(response.body))
     })
   });
-  
+
   // 返回调用
   res.send(data);
 
@@ -122,6 +101,7 @@ app.post("/api/token", async (req, res) => {
   
 });
 
+// 测试文字检查
 app.post("/api/msg_sec_check", async (req, res) => {
   let data = new Promise((resolve, reject) => {
     request({
