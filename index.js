@@ -60,7 +60,7 @@ app.post("/api/token", async (req, res) => {
   let file = '/.tencentcloudbase/wx/access_token_'+req.query.appid+'_'+req.query.secret;
   let writeFile = false;
 
-  fs.access(file, constants.F_OK, (err) => {
+  fs.access(file, fs.constants.F_OK, (err) => {
 
     writeFile = err ? true : (new Date().getMilliseconds - fs.stat.mtimeMs > 7200 * 1000) ? true : false;
 
