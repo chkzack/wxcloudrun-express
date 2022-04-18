@@ -4,7 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 // const https = require("https");
 const { init: initDB, Counter } = require("./db");
-// const fs = require('fs');
+const fs = require('fs');
 const request = require('request');
 const logger = morgan("tiny");
 
@@ -54,33 +54,51 @@ app.get("/api/wx_openid", async (req, res) => {
 // 获取后台授权token
 app.post("/api/token", async (req, res) => {
 
-  console.info(req.query.get("appid"));
-  console.info(req.query.get("secret"));
+  console.info(req.query);
 
-  /**
-   * 文件缓存判断
-   */
+  // 检查当前目录中是否存在该文件。
+  let file = '/.tencentcloudbase/wx/access_token_'+req.query.appid+'_'+req.query.secret;
+  let writeFile = false;
 
-  let data = new Promise((resolve, reject) => {
-    request({
-      method: 'POST',
-      url: 'http://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+req.query.get("appid")+'&secret='+req.query.get("secret"),
-      /*
-      body: JSON.stringify({
-        openid: req.headers['x-wx-openid'], // 可以从请求的header中直接获取 req.headers['x-wx-openid']
-        version: 2,
-        scene: 2,
-        content: '安全检测文本'
-      })
-      */
-    },function (error, response) {
-      console.log('接口返回内容', response.body)
-      resolve(JSON.parse(response.body))
-    })
+  fs.access(file, constants.F_OK, (err) => {
+
+    writeFile = err ? true : (new Date().getMilliseconds - fs.stat.mtimeMs > 7200 * 1000) ? true : false;
+
+    console.log(`${file} ${err ? 'does not exist' : 'exists'}`, writeFile);
   });
 
-  // 返回调用
-  res.send(data);
+  
+  if (writeFile == false) {
+    let token = fs.readFileSync(file, 'utf-8');
+
+    let res = {
+      token: token,
+      expires_in: 7200
+    }
+  
+    // 返回调用
+    res.send(token);
+  } else {
+    data = new Promise((resolve, reject) => {
+      request({
+        method: 'POST',
+        url: 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+req.query.appid+'&secret='+req.query.secret,
+      },function (error, response) {
+        console.log('接口返回内容', response.body)
+        resolve(JSON.parse(response.body))
+      })
+    });
+
+    // 请求失败不更新
+    if (data && data.token) {
+      fs.writeFileSync(file, data.token);
+    }
+
+    // 返回请求参数
+    res.send(data);
+  }
+
+  
 
   // const { action } = req.body;
   // https.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+this.appid+'&secret='+this.appsecret, (resToken) => {
@@ -106,7 +124,6 @@ app.post("/api/msg_sec_check", async (req, res) => {
   let data = new Promise((resolve, reject) => {
     request({
       method: 'POST',
-      // url: 'http://api.weixin.qq.com/wxa/msg_sec_check?access_token=TOKEN',
       url: 'http://api.weixin.qq.com/wxa/msg_sec_check', // 这里就是少了一个token
       body: JSON.stringify({
         openid: req.headers['x-wx-openid'], // 可以从请求的header中直接获取 req.headers['x-wx-openid']
