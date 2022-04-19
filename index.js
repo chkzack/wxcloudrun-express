@@ -3,10 +3,17 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 // const https = require("https");
-const { init: initDB, Counter } = require("./db");
+// const { init: initDB, Counter } = require("./db");
 const fs = require('fs');
 const request = require('request');
 const logger = morgan("tiny");
+
+const basePath = 'tencentcloudbase/wx/';
+
+// 创建存储目录
+fs.mkdir(path.resolve(basePath), { recursive: true }, (err) => {
+  console.error()
+});
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -19,6 +26,7 @@ app.get("/", async (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+/*
 // 更新计数
 app.post("/api/count", async (req, res) => {
   const { action } = req.body;
@@ -43,6 +51,7 @@ app.get("/api/count", async (req, res) => {
     data: result,
   });
 });
+*/
 
 // 小程序调用，获取微信 Open ID
 app.get("/api/wx_openid", async (req, res) => {
@@ -52,24 +61,30 @@ app.get("/api/wx_openid", async (req, res) => {
 });
 
 // 获取后台授权token
-app.post("/api/token", async (req, res) => {
+app.get("/api/token", async (req, res) => {
 
   console.info(req.query);
 
   // 检查当前目录中是否存在该文件。
-  let file = '/.tencentcloudbase/wx/access_token_'+req.query.appid+'_'+req.query.secret;
-  let writeFile = false;
-
-  fs.access(file, fs.constants.F_OK, (err) => {
-
-    writeFile = err ? true : (new Date().getMilliseconds - fs.stat.mtimeMs > 7200 * 1000) ? true : false;
-
-    console.log(`${file} ${err ? 'does not exist' : 'exists'}`, writeFile);
-  });
-
   
-  if (writeFile == false) {
-    let token = fs.readFileSync(file, 'utf-8');
+
+  let file = 'access_token_'+req.query.appid+'_'+req.query.secret;
+  let fileExists = fs.existsSync(path.resolve(basePath, file));
+  let refreshToken = false;
+
+  if (fileExists == true) {
+    fs.accessSync(path.resolve(basePath, file), constants.R_OK | constants.W_OK, (err) => {
+      let lastModifyTimeMillis = new Date().getMilliseconds - fs.stat.mtimeMs;
+
+      refreshToken = err ? true : (lastModifyTimeMillis > 7200 * 1000) ? true : false;
+      console.log(file, 'LastModifyTimeMillis:',lastModifyTimeMillis, 'ms');
+    });
+  }
+  
+  if (fileExists == true && refreshToken == false) {
+    console.info('read from cache file :', file);
+
+    let token = fs.readFileSync(path.resolve(basePath, file), 'utf-8');
 
     let res = {
       token: token,
@@ -79,9 +94,11 @@ app.post("/api/token", async (req, res) => {
     // 返回调用
     res.send(token);
   } else {
+    console.info('refreash token from wechat :', file);
+
     data = new Promise((resolve, reject) => {
       request({
-        method: 'POST',
+        method: 'GET',
         url: 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+req.query.appid+'&secret='+req.query.secret,
       },function (error, response) {
         console.log('接口返回内容', response.body)
@@ -91,7 +108,7 @@ app.post("/api/token", async (req, res) => {
 
     // 请求失败不更新
     if (data && data.token) {
-      fs.writeFileSync(file, data.token);
+      fs.writeFileSync(path.resolve(basePath, file), data.token);
     }
 
     // 返回请求参数
@@ -143,7 +160,7 @@ app.post("/api/msg_sec_check", async (req, res) => {
 const port = process.env.PORT || 80;
 
 async function bootstrap() {
-  await initDB();
+  // await initDB();
   app.listen(port, () => {
     console.log("启动成功", port);
   });
