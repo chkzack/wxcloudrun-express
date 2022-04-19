@@ -61,7 +61,7 @@ app.get("/api/wx_openid", async (req, res) => {
 });
 
 // 获取后台授权token
-app.get("/api/token", async (req, res) => {
+app.get("/cgi-bin/token", async (req, res) => {
 
   console.info(req.query);
 
@@ -73,12 +73,11 @@ app.get("/api/token", async (req, res) => {
   let refreshToken = false;
 
   if (fileExists == true) {
-    fs.accessSync(path.resolve(basePath, file), constants.R_OK | constants.W_OK, (err) => {
-      let lastModifyTimeMillis = new Date().getMilliseconds - fs.stat.mtimeMs;
+    let fileStat = fs.statSync(path.resolve(basePath, file));
+    let lastModifyTimeMillis = new Date().getTime() - fileStat.mtimeMs;
 
-      refreshToken = err ? true : (lastModifyTimeMillis > 7200 * 1000) ? true : false;
-      console.log(file, 'LastModifyTimeMillis:',lastModifyTimeMillis, 'ms');
-    });
+    refreshToken = lastModifyTimeMillis > 7200 * 1000 ? true : false;
+    console.log(file, 'LastModifyTimeMillis:',lastModifyTimeMillis, 'ms', new Date().getTime(), fileStat.mtimeMs);
   }
   
   if (fileExists == true && refreshToken == false) {
@@ -86,37 +85,38 @@ app.get("/api/token", async (req, res) => {
 
     let token = fs.readFileSync(path.resolve(basePath, file), 'utf-8');
 
-    let res = {
+    let data = {
       token: token,
       expires_in: 7200
     }
   
     // 返回调用
-    res.send(token);
+    res.send(data);
+
   } else {
     console.info('refreash token from wechat :', file);
 
-    data = new Promise((resolve, reject) => {
+    // 会有延迟
       request({
         method: 'GET',
         url: 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+req.query.appid+'&secret='+req.query.secret,
-      },function (error, response) {
-        console.log('接口返回内容', response.body)
-        resolve(JSON.parse(response.body))
+      }, function (error, response) {
+        console.info('接口返回内容', response.body);
+
+        let data = JSON.parse(response.body);
+
+        // 请求失败不更新
+        if (data && data.access_token) {
+          fs.writeFileSync(path.resolve(basePath, file), data.access_token);
+          console.info('refresh file :', file);
+        } else {
+          console.error('err :', data)
+        }
+
+        // 返回请求参数
+        res.send(data);
       })
-    });
-
-    // 请求失败不更新
-    if (data && data.token) {
-      fs.writeFileSync(path.resolve(basePath, file), data.token);
-    }
-
-    // 返回请求参数
-    res.send(data);
   }
-
-  
-
   // const { action } = req.body;
   // https.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+this.appid+'&secret='+this.appsecret, (resToken) => {
   //   console.info('statusCode:', resToken.statusCode);

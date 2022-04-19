@@ -3,8 +3,7 @@
     {
       "name": "wxcloudrun-express",
       "domain": "",
-      "ip": "",
-      "containerId": "520a97cc6fb89596df9c6951fb44644ba08e7b2ad543d4e42c23081018ed9cd8"
+      "ip": ""
     }
   ],
   "config": {
@@ -15,7 +14,7 @@
       "minNum": 0,
       "maxNum": 2,
       "cpu": 1,
-      "mem": 2,
+      "mem": 1,
       "policyType": "cpu",
       "policyThreshold": 80,
       "envParams": {},

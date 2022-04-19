@@ -9,7 +9,7 @@
   "minNum": 0,
   "maxNum": 2,
   "cpu": 1,
-  "mem": 2,
+  "mem": 1,
   "policyType": "cpu",
   "policyThreshold": 80,
   "envParams": {},
